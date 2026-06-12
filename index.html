@@ -256,6 +256,9 @@
     .pc-card{width:238px}
   }
   @media(max-width:700px){
+    .bar{padding:14px var(--gut)}
+    .mc{width:36px;height:36px}
+    .pc-track{padding:44px 10px}
     .wordmark{font-size:clamp(56px,17vw,96px)}
     .row-email{flex-direction:column}
     .row-email .cta-foil{width:100%}
@@ -371,7 +374,7 @@
           <div class="pc-card">
             <div class="pc-float">
               <div class="pc-mat">
-                <div class="pc-img"><img src="img/photo-1.jpg" alt="A hotel terrace in Miami at night, palms over an ocean-front cocktail table"></div>
+                <div class="pc-img"><img src="img/photo-1.jpg" alt="A hotel terrace in Miami at night, palms over an ocean-front cocktail table" width="640" height="640" decoding="async"></div>
                 <div class="pc-cap">Miami, after dark</div>
                 <div class="pc-no">№ 01</div>
               </div>
@@ -380,7 +383,7 @@
           <div class="pc-card">
             <div class="pc-float">
               <div class="pc-mat">
-                <div class="pc-img"><img src="img/photo-2.jpg" alt="Two champagne coupes touching in candlelight"></div>
+                <div class="pc-img"><img src="img/photo-2.jpg" alt="Two champagne coupes touching in candlelight" width="640" height="640" decoding="async"></div>
                 <div class="pc-cap">The first toast</div>
                 <div class="pc-no">№ 02</div>
               </div>
@@ -389,7 +392,7 @@
           <div class="pc-card">
             <div class="pc-float">
               <div class="pc-mat">
-                <div class="pc-img"><img src="img/photo-3.jpg" alt="An elegant couple meeting in a dim members' lounge"></div>
+                <div class="pc-img"><img src="img/photo-3.jpg" alt="An elegant couple meeting in a dim members' lounge" width="640" height="640" decoding="async" loading="lazy"></div>
                 <div class="pc-cap">A proper introduction</div>
                 <div class="pc-no">№ 03</div>
               </div>
@@ -398,7 +401,7 @@
           <div class="pc-card">
             <div class="pc-float">
               <div class="pc-mat">
-                <div class="pc-img"><img src="img/photo-4.jpg" alt="An intimate corner table set for two, candlelit"></div>
+                <div class="pc-img"><img src="img/photo-4.jpg" alt="An intimate corner table set for two, candlelit" width="640" height="640" decoding="async" loading="lazy"></div>
                 <div class="pc-cap">Table for two</div>
                 <div class="pc-no">№ 04</div>
               </div>
@@ -407,7 +410,7 @@
           <div class="pc-card">
             <div class="pc-float">
               <div class="pc-mat">
-                <div class="pc-img"><img src="img/photo-5.jpg" alt="Two silhouettes at a rooftop railing in golden-hour light"></div>
+                <div class="pc-img"><img src="img/photo-5.jpg" alt="Two silhouettes at a rooftop railing in golden-hour light" width="640" height="640" decoding="async" loading="lazy"></div>
                 <div class="pc-cap">Golden hour</div>
                 <div class="pc-no">№ 05</div>
               </div>
@@ -416,7 +419,7 @@
           <div class="pc-card">
             <div class="pc-float">
               <div class="pc-mat">
-                <div class="pc-img"><img src="img/photo-6.jpg" alt="A woman pausing in a lit townhouse doorway at night, a waiting car out of focus"></div>
+                <div class="pc-img"><img src="img/photo-6.jpg" alt="A woman pausing in a lit townhouse doorway at night, a waiting car out of focus" width="640" height="640" decoding="async" loading="lazy"></div>
                 <div class="pc-cap">Until next time</div>
                 <div class="pc-no">№ 06</div>
               </div>
@@ -425,7 +428,7 @@
           <div class="pc-card">
             <div class="pc-float">
               <div class="pc-mat">
-                <div class="pc-img"><img src="img/photo-7.jpg" alt="A couple sharing a quiet laugh at a candlelit banquette"></div>
+                <div class="pc-img"><img src="img/photo-7.jpg" alt="A couple sharing a quiet laugh at a candlelit banquette" width="640" height="640" decoding="async" loading="lazy"></div>
                 <div class="pc-cap">A private joke</div>
                 <div class="pc-no">№ 07</div>
               </div>
@@ -434,7 +437,7 @@
           <div class="pc-card">
             <div class="pc-float">
               <div class="pc-mat">
-                <div class="pc-img"><img src="img/photo-8.jpg" alt="A couple arm in arm on a lamplit Mayfair street at night"></div>
+                <div class="pc-img"><img src="img/photo-8.jpg" alt="A couple arm in arm on a lamplit Mayfair street at night" width="640" height="640" decoding="async" loading="lazy"></div>
                 <div class="pc-cap">The long way back</div>
                 <div class="pc-no">№ 08</div>
               </div>
@@ -443,7 +446,7 @@
           <div class="pc-card">
             <div class="pc-float">
               <div class="pc-mat">
-                <div class="pc-img"><img src="img/photo-9.jpg" alt="A couple leaning close over martinis in a dim jazz room"></div>
+                <div class="pc-img"><img src="img/photo-9.jpg" alt="A couple leaning close over martinis in a dim jazz room" width="640" height="640" decoding="async" loading="lazy"></div>
                 <div class="pc-cap">The last set</div>
                 <div class="pc-no">№ 09</div>
               </div>
@@ -452,7 +455,7 @@
           <div class="pc-card">
             <div class="pc-float">
               <div class="pc-mat">
-                <div class="pc-img"><img src="img/photo-10.jpg" alt="A couple before a painting at an after-hours gallery view"></div>
+                <div class="pc-img"><img src="img/photo-10.jpg" alt="A couple before a painting at an after-hours gallery view" width="640" height="640" decoding="async" loading="lazy"></div>
                 <div class="pc-cap">Private view</div>
                 <div class="pc-no">№ 10</div>
               </div>
@@ -652,6 +655,7 @@
     if(!window.THREE)return;
     var holder=document.getElementById('halo'); if(!holder)return;
     var mobile=window.matchMedia('(max-width:980px)').matches;
+    if(mobile)return; /* phones keep the static SVG scene - WebGL dust is a desktop garnish */
     var renderer;
     try{renderer=new THREE.WebGLRenderer({alpha:true,antialias:true,powerPreference:'low-power',preserveDrawingBuffer:true});}
     catch(err){return}
