@@ -88,6 +88,7 @@
   .pc-track::-webkit-scrollbar{display:none}
   /* mobile drift rides a transform belt (compositor) — see carousel script */
   .pc-belt{display:flex;gap:inherit;will-change:transform}
+  @keyframes pcDriftBelt{to{transform:translate3d(var(--pc-set,-2000px),0,0)}}
   .pc-track:focus-visible{outline:1px solid var(--champagne);outline-offset:4px}
   /* each plate hangs at its own height, its own tilt */
   .pc-card{
@@ -261,6 +262,8 @@
     .bar{padding:14px var(--gut)}
     .mc{width:36px;height:36px}
     .pc-track{padding:44px 10px}
+    /* lighter raster while the belt moves: phones get tighter shadows */
+    .pc-mat{box-shadow:0 14px 26px -12px rgba(0,0,0,.72),0 2px 8px rgba(0,0,0,.3)}
     .wordmark{font-size:clamp(56px,17vw,96px)}
     .row-email{flex-direction:column}
     .row-email .cta-foil{width:100%}
@@ -595,10 +598,11 @@
   var SPEED=26; /* px per second — a slow, confident drift */
   var paused=false,pos=0,last=null,setWidth=0;
 
-  /* Phones: programmatic scrollLeft is main-thread + integer-rounded, so a
-     26px/s drift renders as ticks — and worse, touch paused the drift with
-     nothing to resume it. Coarse pointers drive a transform belt instead
-     (compositor, sub-pixel) and hand off to native scroll while touching. */
+  /* Phones: the drift must live OFF the main thread entirely. A CSS
+     animation on a belt wrapper is compositor-owned — it keeps gliding even
+     when JS stalls (image decode, GC, low-power throttling). The JS-driven
+     scrollLeft engine stays for fine pointers only; on touch devices it is
+     main-thread + integer-rounded and reads as ticks. */
   var belt=null;
   if(window.matchMedia('(max-width:980px), (pointer:coarse)').matches){
     belt=document.createElement('div');
@@ -606,59 +610,75 @@
     while(track.firstChild)belt.appendChild(track.firstChild);
     track.appendChild(belt);
   }
-  function setX(x){belt.style.transform='translate3d('+(-x).toFixed(2)+'px,0,0)';}
 
-  function measure(){setWidth=track.scrollWidth/2;}
+  function measure(){
+    setWidth=track.scrollWidth/2;
+    if(belt&&setWidth>0){
+      belt.style.setProperty('--pc-set',(-setWidth)+'px');
+      belt.style.animationDuration=(setWidth/SPEED)+'s';
+    }
+  }
   measure();
   window.addEventListener('resize',measure);
 
-  function frame(t){
-    if(last==null)last=t;
-    var dt=Math.min((t-last)/1000,.1);
-    last=t;
-    if(!paused&&!document.hidden&&setWidth>0){
-      pos+=SPEED*dt;
-      if(pos>=setWidth)pos-=setWidth;
-      if(belt)setX(pos); else track.scrollLeft=pos;
-    }else if(!belt){
-      pos=track.scrollLeft; /* adopt manual scrolling */
-      if(setWidth>0&&pos>=setWidth){pos-=setWidth;track.scrollLeft=pos;}
-    }
-    requestAnimationFrame(frame);
-  }
-  requestAnimationFrame(frame);
-
   if(belt){
-    /* touch: commit the drift offset to native scroll; resume from wherever
-       the user (and the momentum) left it once scrolling goes idle */
+    /* compositor drift + native-scroll hand-off while the user touches */
+    belt.style.animation='pcDriftBelt '+(setWidth/SPEED)+'s linear infinite';
     var idleTimer=null;
+    function beltOffset(){
+      var t=getComputedStyle(belt).transform;
+      var m=t&&t!=='none'?t.match(/matrix\(([^)]+)\)/):null;
+      var x=m?parseFloat(m[1].split(',')[4]):0;
+      return setWidth>0?(((-x)%setWidth)+setWidth)%setWidth:0;
+    }
+    function commit(){ /* freeze the belt, hand the offset to native scroll */
+      if(paused)return;
+      paused=true;
+      pos=beltOffset();
+      belt.style.animation='none';
+      belt.style.transform='translate3d(0,0,0)';
+      track.scrollLeft=pos;
+    }
     function scheduleResume(){
       if(idleTimer)clearTimeout(idleTimer);
       idleTimer=setTimeout(function(){
         idleTimer=null;
-        if(setWidth>0)pos=track.scrollLeft%setWidth;
-        setX(pos);
-        track.scrollLeft=0; /* same task as setX: one paint, no visual jump */
+        pos=setWidth>0?track.scrollLeft%setWidth:0;
+        belt.style.transform='';
+        belt.style.animation='pcDriftBelt '+(setWidth/SPEED)+'s linear infinite';
+        belt.style.animationDelay=(-pos/SPEED)+'s'; /* re-enter the cycle exactly here */
+        track.scrollLeft=0; /* same task as the restart: one paint, no jump */
         paused=false;
       },2600);
     }
     track.addEventListener('touchstart',function(){
       if(idleTimer){clearTimeout(idleTimer);idleTimer=null;}
-      if(!paused){
-        paused=true;
-        setX(0);
-        track.scrollLeft=pos; /* hand the offset to native scroll */
-      }
+      commit();
     },{passive:true});
     track.addEventListener('touchend',scheduleResume,{passive:true});
     track.addEventListener('scroll',function(){
-      if(paused&&idleTimer)scheduleResume(); /* momentum after touchend keeps pushing resume out */
+      if(paused&&idleTimer)scheduleResume(); /* momentum keeps pushing resume out */
     },{passive:true});
-    track.addEventListener('wheel',function(){ /* narrow-desktop mice get the same hand-off */
-      if(!paused){paused=true;setX(0);track.scrollLeft=pos;}
+    track.addEventListener('wheel',function(){ /* narrow-desktop mice get the hand-off too */
+      commit();
       scheduleResume();
     },{passive:true});
   }else{
+    function frame(t){
+      if(last==null)last=t;
+      var dt=Math.min((t-last)/1000,.1);
+      last=t;
+      if(!paused&&!document.hidden&&setWidth>0){
+        pos+=SPEED*dt;
+        if(pos>=setWidth)pos-=setWidth;
+        track.scrollLeft=pos;
+      }else{
+        pos=track.scrollLeft; /* adopt manual scrolling */
+        if(setWidth>0&&pos>=setWidth){pos-=setWidth;track.scrollLeft=pos;}
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
     function pause(){paused=true;}
     function play(){paused=false;}
     ['mouseenter','focusin','touchstart','pointerdown'].forEach(function(ev){
