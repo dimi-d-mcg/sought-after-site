@@ -86,6 +86,8 @@
     .pc-track{scroll-snap-type:x mandatory}
   }
   .pc-track::-webkit-scrollbar{display:none}
+  /* mobile drift rides a transform belt (compositor) — see carousel script */
+  .pc-belt{display:flex;gap:inherit;will-change:transform}
   .pc-track:focus-visible{outline:1px solid var(--champagne);outline-offset:4px}
   /* each plate hangs at its own height, its own tilt */
   .pc-card{
@@ -592,6 +594,20 @@
 
   var SPEED=26; /* px per second — a slow, confident drift */
   var paused=false,pos=0,last=null,setWidth=0;
+
+  /* Phones: programmatic scrollLeft is main-thread + integer-rounded, so a
+     26px/s drift renders as ticks — and worse, touch paused the drift with
+     nothing to resume it. Coarse pointers drive a transform belt instead
+     (compositor, sub-pixel) and hand off to native scroll while touching. */
+  var belt=null;
+  if(window.matchMedia('(max-width:980px), (pointer:coarse)').matches){
+    belt=document.createElement('div');
+    belt.className='pc-belt';
+    while(track.firstChild)belt.appendChild(track.firstChild);
+    track.appendChild(belt);
+  }
+  function setX(x){belt.style.transform='translate3d('+(-x).toFixed(2)+'px,0,0)';}
+
   function measure(){setWidth=track.scrollWidth/2;}
   measure();
   window.addEventListener('resize',measure);
@@ -603,8 +619,8 @@
     if(!paused&&!document.hidden&&setWidth>0){
       pos+=SPEED*dt;
       if(pos>=setWidth)pos-=setWidth;
-      track.scrollLeft=pos;
-    }else{
+      if(belt)setX(pos); else track.scrollLeft=pos;
+    }else if(!belt){
       pos=track.scrollLeft; /* adopt manual scrolling */
       if(setWidth>0&&pos>=setWidth){pos-=setWidth;track.scrollLeft=pos;}
     }
@@ -612,15 +628,47 @@
   }
   requestAnimationFrame(frame);
 
-  function pause(){paused=true;}
-  function play(){paused=false;}
-  ['mouseenter','focusin','touchstart','pointerdown'].forEach(function(ev){
-    sec.addEventListener(ev,pause,{passive:true});
-  });
-  sec.addEventListener('mouseleave',play);
-  sec.addEventListener('focusout',function(){
-    setTimeout(function(){if(!sec.contains(document.activeElement))play();},0);
-  });
+  if(belt){
+    /* touch: commit the drift offset to native scroll; resume from wherever
+       the user (and the momentum) left it once scrolling goes idle */
+    var idleTimer=null;
+    function scheduleResume(){
+      if(idleTimer)clearTimeout(idleTimer);
+      idleTimer=setTimeout(function(){
+        idleTimer=null;
+        if(setWidth>0)pos=track.scrollLeft%setWidth;
+        setX(pos);
+        track.scrollLeft=0; /* same task as setX: one paint, no visual jump */
+        paused=false;
+      },2600);
+    }
+    track.addEventListener('touchstart',function(){
+      if(idleTimer){clearTimeout(idleTimer);idleTimer=null;}
+      if(!paused){
+        paused=true;
+        setX(0);
+        track.scrollLeft=pos; /* hand the offset to native scroll */
+      }
+    },{passive:true});
+    track.addEventListener('touchend',scheduleResume,{passive:true});
+    track.addEventListener('scroll',function(){
+      if(paused&&idleTimer)scheduleResume(); /* momentum after touchend keeps pushing resume out */
+    },{passive:true});
+    track.addEventListener('wheel',function(){ /* narrow-desktop mice get the same hand-off */
+      if(!paused){paused=true;setX(0);track.scrollLeft=pos;}
+      scheduleResume();
+    },{passive:true});
+  }else{
+    function pause(){paused=true;}
+    function play(){paused=false;}
+    ['mouseenter','focusin','touchstart','pointerdown'].forEach(function(ev){
+      sec.addEventListener(ev,pause,{passive:true});
+    });
+    sec.addEventListener('mouseleave',play);
+    sec.addEventListener('focusout',function(){
+      setTimeout(function(){if(!sec.contains(document.activeElement))play();},0);
+    });
+  }
 })();
 </script>
 
