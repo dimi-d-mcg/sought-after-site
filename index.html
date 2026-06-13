@@ -199,6 +199,9 @@
   .ms{position:fixed;inset:0;z-index:60;display:none;place-items:center;padding:20px}
   .ms.on{display:grid}
   .ms-backdrop{position:absolute;inset:0;background:rgba(10,9,14,.72);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+  /* the page behind the modal holds still — no compositing work under the scrim.
+     !important: the belt's animation is inline (JS-managed), this must win. */
+  body.ms-open .pc-belt,body.ms-open .pc-float{animation-play-state:paused!important}
   .ms-panel{position:relative;width:min(430px,94vw);
     background:linear-gradient(160deg,#1B1820,#13111A 60%,#100E15);
     border:1px solid var(--hair-gold);border-radius:var(--radius-panel);
@@ -264,6 +267,8 @@
     .pc-track{padding:44px 10px}
     /* lighter raster while the belt moves: phones get tighter shadows */
     .pc-mat{box-shadow:0 14px 26px -12px rgba(0,0,0,.72),0 2px 8px rgba(0,0,0,.3)}
+    /* full-screen backdrop blur is a GPU tax on phones — deeper scrim instead */
+    .ms-backdrop{backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(10,9,14,.88)}
     .wordmark{font-size:clamp(56px,17vw,96px)}
     .row-email{flex-direction:column}
     .row-email .cta-foil{width:100%}
@@ -866,6 +871,7 @@
   function open(e){
     if(e)e.preventDefault();
     if(isOpen||animating)return; isOpen=true;
+    document.body.classList.add('ms-open'); /* holds the carousel still behind the scrim */
     ov.hidden=false; ov.classList.add('on');
     if(window.gsap&&!reduced){
       animating=true;
@@ -883,7 +889,7 @@
   function close(){
     if(!isOpen||animating)return; isOpen=false;
     document.removeEventListener('keydown',onKey);
-    function fin(){ov.classList.remove('on');ov.hidden=true;trigger.focus();}
+    function fin(){ov.classList.remove('on');ov.hidden=true;document.body.classList.remove('ms-open');trigger.focus();}
     if(window.gsap&&!reduced){
       animating=true;
       var d=delta();
